@@ -53,16 +53,31 @@ const etoFAQ = [
   },
 ]
 
-// 生成 Markdown 内容
+// 生成 Markdown 内容 (与网页内容同步)
 const generateMarkdown = () => {
+  const statsText = stats.map(s => `| ${s.label} | ${s.value} ${s.unit} |`).join('\n')
+  const progressText = progress.map(p => `- [${p.status === 'done' ? 'x' : ' '}] ${p.task} (${p.phase})`).join('\n')
+  const dataFilesText = dataFiles.map(f => `| ${f.name} | ${f.size} | ${f.count} | ${f.type} |`).join('\n')
+  const metricsText = metrics.map(m => `| ${m.name} | ${m.desc} | ${m.expected} |`).join('\n')
+  const faqText = etoFAQ.map(f => `**Q: ${f.q}**\n\n${f.a}`).join('\n\n')
+
   return `# Skill Memory Benchmark 技术方案
 
 > Acontext 技能记忆系统评估基准
+> 文档版本: v1.0 | 日期: 2026-03-12
 
-## 一、项目背景
+---
+
+## 一、项目概览
 
 ### 核心问题
-如何证明 Acontext 技能记忆系统能够有效提升 AI Agent 的任务执行能力？
+如何证明 **Acontext 技能记忆系统** 能够有效提升 AI Agent 的任务执行能力？
+
+### 数据统计
+
+| 指标 | 值 |
+|------|-----|
+${statsText}
 
 ### 对比实验设计
 
@@ -70,75 +85,121 @@ const generateMarkdown = () => {
 |---|---|---|
 | 方法 | 传统 ReAct | 集成 Acontext 技能记忆 |
 | 记忆系统 | 无 | 有 |
-| 预期结果 | 表现稳定 | 表现随轮次提升 |
+| 学习方式 | 每次从零开始 | 检索相关技能 |
+| 预期结果 | 表现稳定，不随时间提升 | 表现随轮次显著提升 |
+
+### 项目进度
+
+${progressText}
+
+---
 
 ## 二、ETO 介绍
 
 ### 什么是 ETO？
-ETO = Exploration-based Trajectory Optimization（基于探索的轨迹优化）
+
+**ETO = Exploration-based Trajectory Optimization（基于探索的轨迹优化）**
 
 - **论文**: ACL 2024 Main Conference
 - **作者**: Yifan Song 等人
 - **GitHub**: https://github.com/Yifan-Song793/ETO
 - **核心思想**: 试错学习 + 轨迹优化
 
-### ETO 数据集自带 Agent 轨迹吗？
-**是的！** ETO 数据集包含现成的高质量 Agent 执行轨迹（专家轨迹），这些轨迹是人工标注或高质量模型生成的。
+### 核心方法对比
 
-### 为什么选 ETO 数据？
-1. **现成的** - 不需要自己跑 Agent 去生成
-2. **格式统一** - JSON 格式，可直接使用
-3. **覆盖广** - 3 个主流 Benchmark
+| 方法 | 说明 |
+|------|------|
+| 传统方法 | 只学习成功轨迹 |
+| ETO 方法 | 学习成功轨迹 + 失败轨迹（对比学习） |
 
-## 三、已获取数据
+### 常见问题
+
+${faqText}
+
+### 为什么选择 ETO？
+
+| 优势 | 说明 |
+|------|------|
+| ✅ 现成的 | 不需要自己跑 Agent 去生成 |
+| 📋 格式统一 | JSON 格式，可直接使用 |
+| 🌍 覆盖广 | 3 个主流 Benchmark |
+
+---
+
+## 三、数据资源
+
+### 已获取数据
 
 | 文件 | 大小 | 轨迹数量 | 任务类型 |
 |------|------|----------|----------|
-| alfworld_sft.json | 18.5 MB | 3,119 条 | 家务任务 |
-| sciworld_sft.json | 13.4 MB | - | 科学实验 |
-| webshop_sft.json | 10.7 MB | - | 电商购物 |
+${dataFilesText}
 
-### 数据格式示例
+### 轨迹数据格式
+
 \`\`\`json
 {
   "id": "alfworld_0",
+  "game_file": "train/pick_and_place_simple-...",
   "conversations": [
     {"from": "human", "value": "任务描述..."},
+    {"from": "gpt", "value": "OK"},
+    {"from": "human", "value": "环境观察..."},
     {"from": "gpt", "value": "Thought: 思考...\\nAction: 动作..."}
   ]
 }
 \`\`\`
 
-## 四、评估指标
+**字段说明:**
+- **human**: 环境观察 / 任务描述
+- **gpt**: Agent 的思考和行动 (Thought + Action)
 
-| 指标 | 说明 | 预期结果 |
-|------|------|----------|
-| 任务成功率 | 完成的任务占总任务的比例 | 实验组 > 对照组 |
-| 平均执行步数 | 完成任务所需的动作数 | 实验组更少 |
-| 学习曲线 | 多轮后性能提升幅度 | 实验组持续上升 |
-| 技能复用率 | 调用已学技能的比例 | 随轮次增加 |
+### 数据处理流程
 
-## 五、项目进度
-
-${progress.map(p => `- [${p.status === 'done' ? 'x' : ' '}] ${p.task} (${p.phase})`).join('\n')}
-
-## 六、下一步行动
-
-1. 上传数据到 Acontext
-2. 触发技能学习
-3. 运行对比实验
-4. 分析结果，验证有效性
-
-## 七、参考链接
-
-- ETO GitHub: https://github.com/Yifan-Song793/ETO
-- ETO 论文: https://arxiv.org/abs/2403.02502
-- ReAct GitHub: https://github.com/ysymyth/ReAct
-- ALFWorld: https://github.com/alfworld/alfworld
+\`\`\`
+ETO 专家轨迹 (JSON) → 格式转换 → Acontext SDK → 技能学习 → SKILL.md
+\`\`\`
 
 ---
 
-*文档版本: v1.0 | 日期: 2026-03-12*
+## 四、实验设计
+
+### 评估指标
+
+| 指标 | 说明 | 预期结果 |
+|------|------|----------|
+${metricsText}
+
+### Acontext 集成
+
+| 配置项 | 值 |
+|--------|-----|
+| API Endpoint | https://api.acontext.app/api/v1 |
+| SDK | acontext (Python) |
+| 认证方式 | API Key |
+
+### 下一步行动
+
+1. **上传数据** - 使用 upload_to_acontext.py 脚本将轨迹上传到 Acontext
+2. **触发学习** - Acontext 自动从轨迹中提取技能
+3. **运行对比** - 在相同任务上对比有无 Acontext 的 Agent 表现
+4. **分析结果** - 收集指标，验证技能记忆系统的有效性
+
+---
+
+## 五、参考链接
+
+| 资源 | 链接 |
+|------|------|
+| ETO GitHub | https://github.com/Yifan-Song793/ETO |
+| ETO 论文 | https://arxiv.org/abs/2403.02502 |
+| ReAct GitHub | https://github.com/ysymyth/ReAct |
+| ALFWorld | https://github.com/alfworld/alfworld |
+| ScienceWorld | https://github.com/allenai/ScienceWorld |
+| WebShop | https://github.com/princeton-nlp/WebShop |
+
+---
+
+*本文档由 Next.js 项目自动生成，与网页内容完全同步*
 `
 }
 
